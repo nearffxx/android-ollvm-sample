@@ -40,6 +40,4 @@ else()
 
     execute_process(
         COMMAND ${CMAKE_COMMAND} -E touch ${LLVM_OBFUSCATOR_LOCK_PATH})
-
-    message(STATUS "    HERE!")
 endif()
