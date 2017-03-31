@@ -1,0 +1,17 @@
+diff --git a/tools/clang/lib/Driver/Driver.cpp b/tools/clang/lib/Driver/Driver.cpp
+index 1664d0d4..0d5f0af2 100644
+--- a/tools/clang/lib/Driver/Driver.cpp
++++ b/tools/clang/lib/Driver/Driver.cpp
+@@ -1876,6 +1876,12 @@ std::string Driver::GetProgramPath(const char *Name,
+   SmallVector<std::string, 2> TargetSpecificExecutables;
+   generatePrefixedToolNames(Name, TC, TargetSpecificExecutables);
+ 
++#if defined(WIN32)
++  for (size_t i = 0, n = TargetSpecificExecutables.size(); i < n; ++i) {
++    TargetSpecificExecutables.push_back(TargetSpecificExecutables[i] + ".exe");
++  }
++#endif
++
+   // Respect a limited subset of the '-Bprefix' functionality in GCC by
+   // attempting to use this prefix when looking for program paths.
+   for (const auto &PrefixDir : PrefixDirs) {

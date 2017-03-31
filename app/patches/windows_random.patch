@@ -1,0 +1,70 @@
+From 3f7f62c0b21455969dc95dd52ad311985413df00 Mon Sep 17 00:00:00 2001
+From: Alen Chen <alenchen@outlook.com>
+Date: Tue, 19 Jul 2016 10:35:49 +0800
+Subject: [PATCH] Generate random bytes on Win platform
+
+---
+ lib/Transforms/Obfuscation/CryptoUtils.cpp | 35 ++++++++++++++++++++++++++----
+ 1 file changed, 31 insertions(+), 4 deletions(-)
+
+diff --git a/lib/Transforms/Obfuscation/CryptoUtils.cpp b/lib/Transforms/Obfuscation/CryptoUtils.cpp
+index a2c0968..3426e96 100644
+--- a/lib/Transforms/Obfuscation/CryptoUtils.cpp
++++ b/lib/Transforms/Obfuscation/CryptoUtils.cpp
+@@ -33,6 +33,12 @@
+ #include <cstring>
+ #include <cstdio>
+ 
++#ifdef LLVM_ON_WIN32
++#include <windows.h>
++#include <wincrypt.h>
++#pragma comment(lib, "advapi32.lib")
++#endif
++
+ // Stats
+ #define DEBUG_TYPE "CryptoUtils"
+ STATISTIC(statsGetBytes, "a. Number of calls to get_bytes ()");
+@@ -621,11 +627,31 @@ void CryptoUtils::populate_pool() {
+ 
+ void CryptoUtils::prng_seed() {
+ 
+-#if defined(__linux__)
++#ifdef LLVM_ON_WIN32
++  LLVMContext &ctx = llvm::getGlobalContext();
++  HCRYPTPROV hCryptProv = NULL;
++  BYTE pbBuffer[16] = {};
++  if (!CryptAcquireContext(&hCryptProv, 0, 0, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT)) {
++    ctx.emitError(Twine("Cannot acquire context in CryptAcquireContext"));
++  }
++  else
++  {
++    if (!CryptGenRandom(hCryptProv, 16, pbBuffer)) {
++      CryptReleaseContext(hCryptProv, 0);
++      ctx.emitError(Twine("Cannot generate random by CryptGenRandom"));
++    }
++    else
++    {
++      memcpy(key, pbBuffer, 16);
++    }
++    CryptReleaseContext(hCryptProv, 0);
++  }
++  DEBUG_WITH_TYPE("cryptoutils", dbgs() << "cryptoutils seeded with CryptGenRandom\n");
++  memset(ctr, 0, 16);
++  aes_compute_ks(ks, key);
++  seeded = true;
++#else //defined(__linux__)
+   std::ifstream devrandom("/dev/urandom");
+-#else
+-  std::ifstream devrandom("/dev/random");
+-#endif
+ 
+   LLVMContext &ctx = llvm::getGlobalContext();
+ 
+@@ -650,6 +676,7 @@ void CryptoUtils::prng_seed() {
+   } else {
+     ctx.emitError(Twine("Cannot open /dev/random"));
+   }
++#endif
+ }
+ 
+ void CryptoUtils::inc_ctr() {
