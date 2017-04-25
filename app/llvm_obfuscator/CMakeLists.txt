@@ -35,7 +35,7 @@ else()
             -DLLVM_TARGETS_TO_BUILD:String=X86$<SEMICOLON>ARM
             -DCMAKE_BUILD_TYPE:String=Release
         BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release
-        INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target Install --config Release
+        INSTALL_COMMAND ${CMAKE_COMMAND} --build . --target install --config Release
         )
 
     execute_process(
